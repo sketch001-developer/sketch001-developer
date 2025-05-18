@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Memory Matching Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f0f0f0;
+    }
+    #game-board {
+      display: grid;
+      gap: 10px;
+      margin: 20px auto;
+      justify-content: center;
+    }
+    .card {
+      width: 80px;
+      height: 80px;
+      background: #3498db;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      color: white;
+      cursor: pointer;
+      border-radius: 10px;
+      user-select: none;
+    }
+    .flipped {
+      background: #2ecc71;
+    }
+    #scoreboard {
+      margin-top: 10px;
+      font-size: 1.2rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Memory Matching Game</h1>
+  <div id="scoreboard">Level: <span id="level">1</span> | Score: <span id="score">0</span></div>
+  <div id="game-board"></div>
+
+  <!-- Sound Effects -->
+  <audio id="flip-sound" src="https://actions.google.com/sounds/v1/cartoon/pop.ogg"></audio>
+  <audio id="match-sound" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
+  <audio id="nomatch-sound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
+  <audio id="levelup-sound" src="https://actions.google.com/sounds/v1/cartoon/concussive_drum_hit.ogg"></audio>
+
+  <script>
+    const board = document.getElementById("game-board");
+    const scoreDisplay = document.getElementById("score");
+    const levelDisplay = document.getElementById("level");
+
+    const flipSound = document.getElementById("flip-sound");
+    const matchSound = document.getElementById("match-sound");
+    const nomatchSound = document.getElementById("nomatch-sound");
+    const levelupSound = document.getElementById("levelup-sound");
+
+    let score = 0;
+    let level = 1;
+    let flippedCards = [];
+    let lockBoard = false;
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function createBoard(level) {
+      board.innerHTML = "";
+      flippedCards = [];
+      const pairs = level + 2;
+      const totalCards = pairs * 2;
+      const icons = [];
+      for (let i = 0; i < pairs; i++) icons.push(i, i);
+      shuffle(icons);
+
+      const columns = Math.min(6, Math.ceil(Math.sqrt(totalCards)));
+      board.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+
+      icons.forEach((icon, index) => {
+        const card = document.createElement("div");
+        card.classList.add("card");
+        card.dataset.icon = icon;
+        card.addEventListener("click", () => flipCard(card));
+        board.appendChild(card);
+      });
+    }
+
+    function flipCard(card) {
+      if (lockBoard || card.classList.contains("flipped") || flippedCards.includes(card)) return;
+      flipSound.currentTime = 0;
+      flipSound.play();
+      card.textContent = card.dataset.icon;
+      card.classList.add("flipped");
+      flippedCards.push(card);
+
+      if (flippedCards.length === 2) {
+        lockBoard = true;
+        setTimeout(checkMatch, 1000);
+      }
+    }
+
+    function checkMatch() {
+      const [first, second] = flippedCards;
+      if (first.dataset.icon === second.dataset.icon) {
+        matchSound.currentTime = 0;
+        matchSound.play();
+        score++;
+        scoreDisplay.textContent = score;
+        flippedCards = [];
+        lockBoard = false;
+
+        if (document.querySelectorAll(".card:not(.flipped)").length === 0) {
+          setTimeout(levelUp, 1000);
+        }
+      } else {
+        nomatchSound.currentTime = 0;
+        nomatchSound.play();
+        first.classList.remove("flipped");
+        second.classList.remove("flipped");
+        first.textContent = "";
+        second.textContent = "";
+        flippedCards = [];
+        lockBoard = false;
+      }
+    }
+
+    function levelUp() {
+      levelupSound.currentTime = 0;
+      levelupSound.play();
+      level++;
+      levelDisplay.textContent = level;
+      createBoard(level);
+    }
+
+    createBoard(level);
+  </script>
+</body>
+</html>
